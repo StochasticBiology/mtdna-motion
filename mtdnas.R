@@ -79,3 +79,61 @@ for(i in c(1, 100, 200)) {
 }
 
 ggarrange(plotlist = c(dna.vis.list, dna.plot.list), nrow=2, ncol = length(dna.vis.list))
+
+#####
+
+library(dplyr)
+library(tidyr)
+
+# example inputs:
+# df with columns: traj, t, x, y
+df = subdf  
+D = 10
+d = 5
+
+# 1. compute total displacement per trajectory
+disp <- df %>%
+  arrange(traj, t) %>%
+  group_by(traj) %>%
+  summarise(
+    disp = sqrt((last(x) - first(x))^2 + (last(y) - first(y))^2),
+    .groups = "drop"
+  )
+
+# keep only trajectories that move enough
+active_traj <- disp %>%
+  filter(disp >= D) %>%
+  pull(traj)
+
+df2 <- df %>%
+  filter(traj %in% active_traj)
+
+# 2. self-join by time to compare trajectories at same t
+pairs <- df2 %>%
+  inner_join(df2, by = "t", suffix = c("_1", "_2")) %>%
+  filter(traj_1 < traj_2) %>%
+  mutate(
+    dist = sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2)
+  )
+
+# 3. find pairs that are ever within distance d
+close_pairs <- pairs %>%
+  group_by(traj_1, traj_2) %>%
+  summarise(
+#    ever_close = any(dist <= d),
+    ever_close = mean(dist <= d) >= 0.5,
+    min_dist = min(dist),
+    .groups = "drop"
+  ) %>%
+  filter(ever_close)
+
+close_pairs
+pair.set = unlist(close_pairs[,1:2], use.names = FALSE)
+ggplot(data=subdf,
+       aes(x=x, y=y, color=factor(traj))) +
+  geom_path(alpha=0.1) +
+  geom_path(data=subdf[subdf$traj %in% pair.set,], 
+            aes(x=x, y=y, color=factor(traj))) +
+  theme_minimal() + 
+  theme(legend.position = "none")
+
