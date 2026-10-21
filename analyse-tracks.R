@@ -8,7 +8,7 @@ library(spatstat.explore)
 # extract a dataframe of mito-time-mindist-ID of closest partner
 # spatial unit is microns
 df = result = data.frame()
-for (f in list.files(pattern = "\\.csv$")) {
+for (f in list.files("Tracks", pattern = "\\.csv$", full.names = TRUE)) {
   tdf <- read.csv(f)
   tdf = tdf[4:nrow(tdf),]
   tdf1 = data.frame(id = as.numeric(tdf$TRACK_ID), t = as.numeric(tdf$POSITION_T),
@@ -52,8 +52,6 @@ ggplot(result, aes(x = id, y = partner)) + geom_point(alpha = 0.05)
 # attempt at trajectories
 ggplot(result[result$id == 1,], aes(x = t, y = mindist, color = factor(partner))) + 
   geom_line() + scale_y_log10() + theme(legend.position = "none")
-
-library(dplyr)
 
 # loop through experiments
 pp.plot = list()
@@ -101,10 +99,6 @@ sf = 2
 png("pp-example.png", width=200*sf, height=500*sf, res=72*sf)
 print(pp.plot[[1]])
 dev.off()
-
-
-ex.set = df[df$ref == refs[4] & df$id %in% c(tracts$id, tracts$partner),]
-ggplot(ex.set, aes(x = x, y = y, color = factor(id))) + geom_path()
 
 ###### separation analysis
 
