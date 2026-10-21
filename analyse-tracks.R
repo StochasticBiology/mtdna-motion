@@ -3,12 +3,17 @@ library(ggpubr)
 library(dplyr)
 library(spatstat.geom)
 library(spatstat.explore)
+library(viridis)
 
-# pull in spot tracking data from FIJI
+# pull in nucleoid spot tracking data from FIJI
+# [
+# these are found using TrackMate on the nucleoid channel of the Chustecki et al. datasets
+# with a 0.4um diameter, 2-3-2 settings for traj connections, and variable quality thresholds (see methods spreadsheet)
+# ]
 # extract a dataframe of mito-time-mindist-ID of closest partner
 # spatial unit is microns
 df = result = data.frame()
-for (f in list.files("Tracks", pattern = "\\.csv$", full.names = TRUE)) {
+for (f in list.files("Tracks1", pattern = "\\.csv$", full.names = TRUE)) {
   tdf <- read.csv(f)
   tdf = tdf[4:nrow(tdf),]
   tdf1 = data.frame(id = as.numeric(tdf$TRACK_ID), t = as.numeric(tdf$POSITION_T),
@@ -34,6 +39,56 @@ for (f in list.files("Tracks", pattern = "\\.csv$", full.names = TRUE)) {
   df = rbind(df, tdf1)
   result = rbind(result, tresult)
 }
+
+### speed distribution
+dna.speed.df <- df |>
+  dplyr::group_by(id, ref) |>
+  dplyr::filter(dplyr::n() > 2) |>
+  dplyr::slice(2:(dplyr::n() - 1)) |>
+  dplyr::mutate(
+    speed = sqrt((x - dplyr::lag(x))^2 +
+                   (y - dplyr::lag(y))^2) /
+      (t - dplyr::lag(t))
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::select(id, t, speed, ref)
+
+ggplot(dna.speed.df, aes(x = log10(speed), fill = ref)) + 
+  geom_histogram() 
+# weird y axis?
+
+### counts
+dna.count.df <- df |>
+  dplyr::group_by(ref, t) |>
+  dplyr::summarise(n_ids = dplyr::n_distinct(id), .groups = "drop")
+
+ggplot(dna.count.df, aes(x = n_ids, fill=ref)) + geom_histogram()
+
+### areas
+dna.cell.area.df <- df |>
+  dplyr::filter(t == 0) |>
+  dplyr::group_by(ref) |>
+  dplyr::summarise(
+    area = {
+      h <- grDevices::chull(x, y)
+      xh <- x[h]
+      yh <- y[h]
+      abs(sum(xh * dplyr::lead(yh, default = yh[1]) -
+                yh * dplyr::lead(xh, default = xh[1]))) / 2
+    },
+    .groups = "drop"
+  )
+
+#### densities
+
+dna.density.df <- dna.count.df |>
+  dplyr::left_join(dna.cell.area.df, by = "ref") |>
+  dplyr::mutate(density = n_ids / area)
+
+ggplot(dna.density.df, aes(x = density, fill=ref)) + geom_histogram()
+
+#### end physical stats
+
 
 refs = unique(df$ref)
 
@@ -84,7 +139,7 @@ tracts.xy <- tracts[tracts$id > tracts$partner,] |>
 pp.plot[[expt.ref]] = ggplot() +
   geom_path(data=df[df$ref==refs[expt.ref],], aes(x=x, y=y, group=id), color="#EEEEEE") +
   geom_path(data=tracts.xy, aes(x=x1,y=y1,color=factor(id))) +
-  geom_path(data=tracts.xy, aes(x=x2,y=y2,color=factor(id))) +
+  geom_path(data=tracts.xy, aes(x=x2,y=y2,color=factor(id)), alpha = 0.5) +
   theme_minimal() + theme(legend.position = "none")
 
 # what proportion of mito-frames are in the persistent pair set?
@@ -164,6 +219,194 @@ for(i in 1:length(refs)) {
 
 ggarrange(plotlist = c(dna.vis.list, dna.plot.list), nrow=2, ncol = length(dna.vis.list))
 
+ggarrange(dna.vis.list[[1]], dna.plot.list[[1]])
+
+#############
+
+# get traj extraction script
+src.traj.files = paste("../Mitosim/optimal-mitos-main/plant-mito-dynamics/mtgfp-rawtrajectories/mtGFP-", 1:5, ".xml-rawtrajs.csv", sep="")
+
+snap = 0
+matrix.vis.list = matrix.plot.list = list()
+mito.df = data.frame()
+
+for(expt in 1:length(src.traj.files)) {
+  # initialise storage
+  # extract data for this experiment
+  sub.traj = read.csv(src.traj.files[expt])
+  if(colnames(sub.traj)[1] == "frame") {
+    colnames(sub.traj) = c("t", "traj", "active", "x", "y")
+  }
+  tmp = sub.traj
+  tmp$ref = expt
+  mito.df = rbind(mito.df, tmp)
+  for(i in c(1)) { #}, max(sub.traj$t)/4, 2*max(sub.traj$t)/4, 3*max(sub.traj$t)/4, max(sub.traj$t))) {
+    snap = snap + 1
+    # pull trajectories up to this time point, and plot
+    sub.traj.t = sub.traj[sub.traj$t == i,]
+    pts = sub.traj.t[,c("x", "y")]
+    
+    # convex hull from your points
+    h <- chull(pts$x, pts$y)
+    h <- rev(h)
+    
+    # get domain of points
+    win <- owin(poly = list(x = pts$x[h], y = pts$y[h]))
+    
+    # point pattern within our cell
+    pp <- ppp(x = pts$x, y = pts$y, window = win)
+    
+    win_df <- data.frame(
+      x = pts$x[h],
+      y = pts$y[h]
+    )
+    
+    matrix.vis.list[[snap]] = ggplot() + 
+      geom_polygon(data = win_df, aes(x = x, y = y),
+                   fill = NA, colour = "black", linewidth = 1) +
+      geom_point(data = pts, aes(x = x, y = y),
+                 size = 1) +
+      coord_equal() + theme_classic() + labs(x = "x", y = "y")
+    
+    L <- Lest(pp, correction = "translation")  # robust default
+    plot(L)
+    abline(h = 0, lty = 2)
+    env <- envelope(
+      pp,
+      fun = Lest,
+      nsim = 99,
+      correction = "translation",
+      simulate = expression(runifpoint(npoints(pp), win = win)) # null model in our cell
+    )
+    
+    #      plot(env)
+    #     abline(h = 0, lty = 2)
+    matrix.df <- data.frame(
+      r = env$r,
+      obs = env$obs,
+      mean = env$mmean,
+      lo = env$lo,
+      hi = env$hi)
+    
+    matrix.plot.list[[snap]] = ggplot(matrix.df, aes(x = r)) +
+      geom_ribbon(aes(ymin = lo, ymax = hi), fill = "grey85") +
+      geom_line(aes(y = obs), linewidth = 1) +
+      geom_line(aes(y = mean), linetype = "dashed") +
+      geom_hline(yintercept = 0, linetype = "dotted") +
+      theme_classic() +
+      labs(y = "L(r)", x = "Distance (r)")
+  }
+}
+
+colnames(mito.df)[1] = "id"
+mito.df$ref = factor(mito.df$ref)
+### speed distribution
+mito.speed.df <- mito.df |>
+  dplyr::group_by(id, ref) |>
+  dplyr::filter(dplyr::n() > 2) |>
+  dplyr::slice(2:(dplyr::n() - 1)) |>
+  dplyr::mutate(
+    speed = sqrt((x - dplyr::lag(x))^2 +
+                   (y - dplyr::lag(y))^2) /
+      (t - dplyr::lag(t))
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::select(id, t, speed, ref)
+
+ggplot(mito.speed.df, aes(x = log10(speed), fill = ref)) + 
+  geom_histogram() 
+# weird y axis?
+
+### counts
+mito.count.df <- mito.df |>
+  dplyr::group_by(ref, t) |>
+  dplyr::summarise(n_ids = dplyr::n_distinct(id), .groups = "drop")
+
+ggplot(mito.count.df, aes(x = n_ids, fill=ref)) + geom_histogram()
+
+### areas
+mito.cell.area.df <- mito.df |>
+  dplyr::filter(t == 1) |>
+  dplyr::group_by(ref) |>
+  dplyr::summarise(
+    area = {
+      h <- grDevices::chull(x, y)
+      xh <- x[h]
+      yh <- y[h]
+      abs(sum(xh * dplyr::lead(yh, default = yh[1]) -
+                yh * dplyr::lead(xh, default = xh[1]))) / 2
+    },
+    .groups = "drop"
+  )
+
+#### densities
+
+mito.density.df <- mito.count.df |>
+  dplyr::left_join(mito.cell.area.df, by = "ref") |>
+  dplyr::mutate(density = n_ids / area)
+
+ggplot(mito.density.df, aes(x = density, fill=ref)) + geom_histogram()
+
+#### end physical stats
+
+p.style = theme_minimal() + 
+  theme(legend.position = "none") 
+phys.plot = ggarrange(
+  ggplot(dna.speed.df, aes(x=log10(speed), fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,
+  ggplot(dna.count.df, aes(x=n_ids, fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,
+  ggplot(dna.density.df, aes(x=density, fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,
+  ggplot(mito.speed.df, aes(x=log10(speed), fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,
+  ggplot(mito.count.df, aes(x=n_ids, fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,
+  ggplot(mito.density.df, aes(x=density, fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,
+  labels = c("Ci", "ii", "iii", "Di", "ii", "iii")
+)
+
+####
+
+png("collective-2.png", width=500*sf, height=700*sf, res=72*sf)
+ggarrange(ggarrange(pp.plot[[1]], 
+          ggarrange(matrix.plot.list[[5]],
+                    dna.plot.list[[5]], nrow = 2, 
+                    labels = c("Bi", "ii")),
+          labels = c("A", "")),
+          phys.plot,
+          nrow=2, heights=c(2,1))
+dev.off()
+
+##########
+
+ggarrange(plotlist = c(matrix.vis.list, matrix.plot.list), nrow=2, ncol = length(matrix.vis.list))
+
+ggarrange(pp.plot[[1]], 
+          ggarrange(matrix.vis.list[[5]], matrix.plot.list[[5]],
+                    dna.vis.list[[1]], dna.plot.list[[5]], 
+          labels = c("Bi", "ii", "Ci", "ii")),
+          labels = c("A", ""))
+
+png("collective.png", width=500*sf, height=500*sf, res=72*sf)
+ggarrange(pp.plot[[1]], 
+          ggarrange(matrix.plot.list[[5]],
+                    dna.plot.list[[5]], nrow = 2, 
+                    labels = c("B", "C")),
+          labels = c("A", ""))
+dev.off()
+
+png("spatial-stats.png", width=900*sf, height=600*sf, res=72*sf)
+ggarrange(
+ggarrange(plotlist = c(matrix.vis.list, matrix.plot.list), nrow=2, ncol = length(matrix.vis.list)),
+
+ggarrange(plotlist = c(dna.vis.list, dna.plot.list), nrow=2, ncol = length(dna.vis.list)),
+nrow=2, labels=c("A", "B")
+)
+dev.off()
+
+###############
 #####
 
 library(dplyr)
