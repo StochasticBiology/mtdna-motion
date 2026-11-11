@@ -1,16 +1,3 @@
 # mtdna-motion
 
-Figure	Reference	Internal name	x / px	y / px	start / frame	end / frame	Notes	Provenance
-1A	Sample9-cell1	AOX-sample9-240frames-3DDriftCorrect-cell1.avi	NA	NA	39	39		physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-1B	150-definite	150FramesDefinite foucs.czi	297	88	0	150	Always at one end	9-16-24AOX-mtHINESSdynamicsDefiniteFocus
-1Di	sample8-cell3	AOX-sample8-240frames-3DDriftCorrect-Cell3.czi	143	134	56	103	Colocalisation via compression	physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-1Dii	Sample5-cell3.avi		40	339	132	169	Convincing agglomeration	physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-1Diii	150-definite	150FramesDefinite foucs.czi	343	78	0	150	Relative motion	9-16-24AOX-mtHINESSdynamicsDefiniteFocus
-3A	sample9-cell1	AOX-sample9-240frames-3DDriftCorrect-cell1.czi	NA	NA	1	1		physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-3Bi	 Sample5-cell3.avi		81	404	211	239	Transfer in 	physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-3Bii	Sample9-cell1	AOX-sample9-240frames-3DDriftCorrect-cell1.avi	117	418	187	239	Likely fusion and prox	physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-4A	8-orig.avi	27 Oct 26 - Wheat Deep Red and SYBR Green 30mins - 6 Days old - 60x_0008.oir	NA	NA	167	167	Snapshot for Fig 4A	New wheat data
-4B	8-orig.avi	27 Oct 26 - Wheat Deep Red and SYBR Green 30mins - 6 Days old - 60x_0008.oir	298	67	1	324	Two-nucleoid mitochondrion deforming and splitting	New wheat data
-S3i	sample9-cell1	AOX-sample9-240frames-3DDriftCorrect-cell1.czi	NA	NA	1	1		physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-S3ii	Sample4-cell2	AOX-sample4-240frames-3DDriftCorrect-cell2.czi	NA	NA	240	240	Late frame used due to intensity distribution	physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs
-S3iii	Sample8-cell1	AOX-sample8-240frames-3DDriftCorrect-Cell1.czi	NA	NA	64	64	Late frame used due to intensity distribution	physical-genetic-dynamics-main/AnalysedLiveAOX-mt-HI-NESSVideos/SourceCZIs<img width="692" height="225" alt="image" src="https://github.com/user-attachments/assets/f7b7584c-e795-4994-912a-3334109a6c73" />
+<img width="692" height="225" alt="image" src="https://github.com/user-attachments/assets/f7b7584c-e795-4994-912a-3334109a6c73" />
