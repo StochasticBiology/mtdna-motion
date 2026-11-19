@@ -5,11 +5,6 @@ library(spatstat.geom)
 library(spatstat.explore)
 library(viridis)
 
-# The Tracks1 folder contains results from TrackMate with subpixel localisation and median filtering
-# Tracks2 has subpixel localisation but not median preproc
-# Tracks does not have these
-# the trouble is that while this averaging gives smoother physical statistics, it also tends to lump adjacent puncta together
-
 # pull in nucleoid spot tracking data from FIJI
 # [
 # these are found using TrackMate on the nucleoid channel of the Chustecki et al. datasets
@@ -311,15 +306,30 @@ phys.plot = ggarrange(
     geom_histogram() + scale_fill_viridis_d() + p.style,# + xlim(0.05,0.3),
   labels = c("Ai", "ii", "iii", "Bi", "ii", "iii")
 )
+phys.plot.wheat = ggarrange(
+  ggplot(dna.speed.df, aes(x=log10(speed), fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,# + xlim(-4,0),
+  ggplot(dna.density.df, aes(x=density, fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,# + xlim(0.05,0.3),
+  ggplot(mito.speed.df, aes(x=log10(speed), fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,# + xlim(-4,0),
+  ggplot(mito.density.df, aes(x=density, fill=ref)) + 
+    geom_histogram() + scale_fill_viridis_d() + p.style,# + xlim(0.05,0.3),
+  labels = c("Ci", "ii", "Di", "ii")
+)
 
-phys.plot
+phys.plot.wheat
 
 ####
 
 png("wheat-collective-2.png", width=500*sf, height=300*sf, res=72*sf)
-ggarrange(phys.plot, pp.plot[[1]],
-          labels = c("", "C"),
+ggarrange(phys.plot.wheat, pp.plot[[2]],
+         
           nrow=2)
+dev.off()
+
+png("wheat-collective-3.png", width=500*sf, height=200*sf, res=72*sf)
+ggarrange(phys.plot.wheat)
 dev.off()
 
 
