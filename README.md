@@ -6,17 +6,15 @@ Data and analysis for the manuscript "Physical constraints on the social-genetic
 
 Contents
 ----
-This repository makes use of the data from http://github.com/jo-c-bio/physical-genetic-dynamics .
+This repository makes use of the data from http://github.com/jo-c-bio/physical-genetic-dynamics and https://github.com/StochasticBiology/plant-mito-dynamics . Clone these and pull the relevant data with `setup.sh`.
 
+* `setup.sh` -- pull data from other studies and unpack source data for this study
 * `fig-case-studies.csv` -- description of source files and coordinates in videos of the case study behaviours in the manuscript
 
 Code
 ---
 * `analyse-tracks[-wheat].R` -- R code to analyse the TrackMate trajectories from video data
 * `jie-model.R` -- graphics for the mathematical model of nucleoid dynamics in the manuscript
-* `mito-spcacing.R` -- XXX
-* `mtdnas.R` -- XXX
-* `crop-video.R` -- XXX
 
 Data
 ---
