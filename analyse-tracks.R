@@ -10,10 +10,11 @@ library(viridis)
 # these are found using TrackMate on the nucleoid channel of the Chustecki et al. datasets
 # with a 0.4um diameter, 2-3-2 settings for traj connections, and variable quality thresholds (see methods spreadsheet)
 # ]
+# Tracks2 has subpixel localisation but not median preproc, which tends to blur together punctae
 # extract a dataframe of mito-time-mindist-ID of closest partner
 # spatial unit is microns
 df = result = data.frame()
-for (f in list.files("Tracks1", pattern = "\\.csv$", full.names = TRUE)) {
+for (f in list.files("Tracks2", pattern = "dnas\\.csv$", full.names = TRUE)) {
   tdf <- read.csv(f)
   tdf = tdf[4:nrow(tdf),]
   tdf1 = data.frame(id = as.numeric(tdf$TRACK_ID), t = as.numeric(tdf$POSITION_T),
@@ -100,6 +101,11 @@ ggplot(df, aes(x=x, y=y, color=factor(id))) +
 # distribution of minimum distances across frames
 # peak around 2-3 microns
 ggplot(result, aes(x = mindist)) + scale_x_log10() + geom_histogram() + facet_wrap(~ref)
+sep.plot = ggplot(result, aes(x = mindist, fill = ref)) +
+  scale_fill_viridis_d() +
+  scale_x_log10() + geom_histogram() +
+  theme_minimal() + theme(legend.position = "none")
+sep.plot
 
 # structured "partnering" plot
 ggplot(result, aes(x = id, y = partner)) + geom_point(alpha = 0.05)
@@ -224,7 +230,7 @@ ggarrange(dna.vis.list[[1]], dna.plot.list[[1]])
 #############
 
 # get traj extraction script
-src.traj.files = paste("../Mitosim/optimal-mitos-main/plant-mito-dynamics/mtgfp-rawtrajectories/mtGFP-", 1:5, ".xml-rawtrajs.csv", sep="")
+src.traj.files = paste("OldTracks/mtGFP-", 1:5, ".xml-rawtrajs.csv", sep="")
 
 snap = 0
 matrix.vis.list = matrix.plot.list = list()
@@ -300,6 +306,18 @@ for(expt in 1:length(src.traj.files)) {
 
 colnames(mito.df)[1] = "id"
 mito.df$ref = factor(mito.df$ref)
+
+mito.df = data.frame()
+for (f in list.files("Tracks2", pattern = "mitos\\.csv$", full.names = TRUE)) {
+  tdf <- read.csv(f)
+  tdf = tdf[4:nrow(tdf),]
+  tdf1 = data.frame(id = as.numeric(tdf$TRACK_ID), t = as.numeric(tdf$POSITION_T),
+                    x = as.numeric(tdf$POSITION_X), y = as.numeric(tdf$POSITION_Y))
+  tdf1 <- tdf1[order(tdf1$id, tdf1$t), ]
+  tdf1$ref = f
+  mito.df = rbind(mito.df, tdf1)
+}
+
 ### speed distribution
 mito.speed.df <- mito.df |>
   dplyr::group_by(id, ref) |>
@@ -326,7 +344,7 @@ ggplot(mito.count.df, aes(x = n_ids, fill=ref)) + geom_histogram()
 
 ### areas
 mito.cell.area.df <- mito.df |>
-  dplyr::filter(t == 1) |>
+  dplyr::filter(t == 0) |>
   dplyr::group_by(ref) |>
   dplyr::summarise(
     area = {
@@ -353,19 +371,21 @@ p.style = theme_minimal() +
   theme(legend.position = "none") 
 phys.plot = ggarrange(
   ggplot(dna.speed.df, aes(x=log10(speed), fill=ref)) + 
-    geom_histogram() + scale_fill_viridis_d() + p.style,
+    geom_histogram() + scale_fill_viridis_d() + p.style + xlim(-4,0),
   ggplot(dna.count.df, aes(x=n_ids, fill=ref)) + 
-    geom_histogram() + scale_fill_viridis_d() + p.style,
+    geom_histogram() + scale_fill_viridis_d() + p.style + xlim(0,120),
   ggplot(dna.density.df, aes(x=density, fill=ref)) + 
-    geom_histogram() + scale_fill_viridis_d() + p.style,
+    geom_histogram() + scale_fill_viridis_d() + p.style + xlim(0.05,0.3),
   ggplot(mito.speed.df, aes(x=log10(speed), fill=ref)) + 
-    geom_histogram() + scale_fill_viridis_d() + p.style,
+    geom_histogram() + scale_fill_viridis_d() + p.style + xlim(-4,0),
   ggplot(mito.count.df, aes(x=n_ids, fill=ref)) + 
-    geom_histogram() + scale_fill_viridis_d() + p.style,
+    geom_histogram() + scale_fill_viridis_d() + p.style + xlim(0,120),
   ggplot(mito.density.df, aes(x=density, fill=ref)) + 
-    geom_histogram() + scale_fill_viridis_d() + p.style,
-  labels = c("Ci", "ii", "iii", "Di", "ii", "iii")
+    geom_histogram() + scale_fill_viridis_d() + p.style + xlim(0.05,0.3),
+  labels = c("Ai", "ii", "iii", "Bi", "ii", "iii")
 )
+
+phys.plot
 
 ####
 
@@ -377,6 +397,20 @@ ggarrange(ggarrange(pp.plot[[1]],
           labels = c("A", "")),
           phys.plot,
           nrow=2, heights=c(2,1))
+dev.off()
+
+png("collective-3.png", width=600*sf, height=500*sf, res=72*sf)
+ggarrange(
+  ggarrange(
+    phys.plot,
+    ggarrange(sep.plot, 
+              ggarrange(matrix.plot.list[[5]],
+                        dna.plot.list[[5]], nrow = 2,
+                        labels=c("Di", "ii")),
+              labels=c("C", "")
+    ), nrow=2, heights=c(1.5,1)),
+    pp.plot[[1]], labels=c("", "E"),
+    nrow=1, widths=c(2.5,1))
 dev.off()
 
 ##########
