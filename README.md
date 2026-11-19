@@ -6,7 +6,7 @@ Data and analysis for the manuscript "Physical constraints on the social-genetic
 
 Contents
 ----
-This repository makes use of the data from http://github.com/jo-c-bio/physical-genetic-dynamics and https://github.com/StochasticBiology/plant-mito-dynamics . Clone these and pull the relevant data with `setup.sh`.
+This repository makes use of the data from http://github.com/jo-c-bio/physical-genetic-dynamics. Clone this and pull the relevant data -- and unzip the data in this repo -- with `setup.sh`.
 
 * `setup.sh` -- pull data from other studies and unpack source data for this study
 * `fig-case-studies.csv` -- description of source files and coordinates in videos of the case study behaviours in the manuscript
@@ -19,5 +19,6 @@ Code
 Data
 ---
 * `Videos/` -- raw video data (`.oir` and `.czi` format; use FIJI) from wheat and Arabidopsis mitochondrial and mtDNA live imaging. Several are compressed due to Github file size limits; unzip before use.
+* `OldTracks/` -- TrackMate trajectories (`.csv` format) for mitochondria from existing video data https://github.com/StochasticBiology/plant-mito-dynamics/tree/main/mtgfp-rawtrajectories
 * `Tracks2/` -- TrackMate trajectories (`.csv` format) for mitochondria and nucleoids from Arabidopsis video data
 * `WheatTracks/` -- TrackMate trajectories (`.csv` format) for mitochondria and nucleoids from wheat video data
